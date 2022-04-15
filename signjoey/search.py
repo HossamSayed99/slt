@@ -344,6 +344,10 @@ def beam_search(
 
         # pick currently best top k hypotheses (flattened order)
         topk_scores, topk_ids = curr_scores.topk(size, dim=-1)
+        # print(f"topk_ids: {topk_ids} and its type is {topk_ids.dtype}")
+        # print("Casting topk_ids to ints: ")
+        topk_ids = topk_ids.type(torch.IntTensor)
+        # print(f"topk_ids after casting: {topk_ids} and its type is {topk_ids.dtype}")
 
         if alpha > -1:
             # recover original log probs
@@ -354,13 +358,18 @@ def beam_search(
         # reconstruct beam origin and true word ids from flattened order
         topk_beam_index = topk_ids.div(decoder.output_size)
         topk_ids = topk_ids.fmod(decoder.output_size)
+        # print(f"topk_beam_index: {topk_beam_index}, type: {topk_beam_index.dtype}")
+        # print("Casting topk_beam_index to ints: ")
+        topk_beam_index = topk_beam_index.type(torch.IntTensor)
+        # print(f"topk_beam_index after casting: {topk_beam_index} and its type is {topk_beam_index.dtype}")
+
 
         # map beam_index to batch_index in the flat representation
         batch_index = topk_beam_index + beam_offset[
             : topk_beam_index.size(0)
         ].unsqueeze(1)
         select_indices = batch_index.view(-1)
-
+        # print(f"alive_seq: {alive_seq.shape}, select_indices: {select_indices.shape}, topk_ids: {topk_ids.shape}")
         # append latest prediction
         alive_seq = torch.cat(
             [alive_seq.index_select(0, select_indices), topk_ids.view(-1, 1)], -1
